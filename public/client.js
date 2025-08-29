@@ -2,11 +2,10 @@
   const feedEl = document.getElementById('feed');
   const subtitleEl = document.getElementById('subtitle');
   const presenceEl = document.getElementById('presence');
-  const mapEl = document.getElementById('map');
-
-  const rankEl = document.getElementById('rank');
+  const mapEl = document.getElementById('map');const rankEl = document.getElementById('rank');
   const placeEl = document.getElementById('place');
   const pphEl = document.getElementById('pph');
+  const zonesNowEl = document.getElementById('zonesNow');
   const pointsEl = document.getElementById('points');
   const takenEl = document.getElementById('taken');
   const uniqueEl = document.getElementById('unique');
@@ -53,13 +52,12 @@
   function renderFeed() {
     feedEl.innerHTML = '';
     for (const li of items) feedEl.appendChild(li);
-  }
-
-  function setStats(s) {
+  }function setStats(s) {
     subtitleEl.textContent = s?.name ? `Tracking ${s.name}` : 'Tracking…';
     rankEl.textContent = s?.rank ?? '-';
     placeEl.textContent = s?.place ?? '-';
     pphEl.textContent = s?.pointsPerHour ?? '-';
+    zonesNowEl.textContent = (Array.isArray(s?.zones) ? s.zones.length : (Number.isFinite(s?.zonesNow) ? s.zonesNow : '-'));
     pointsEl.textContent = s?.points ?? '-';
     takenEl.textContent = s?.taken ?? '-';
     uniqueEl.textContent = s?.uniqueZonesTaken ?? '-';

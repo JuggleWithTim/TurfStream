@@ -164,8 +164,7 @@ async function pollStats() {
   const user = data[0];
   if (user?.id && !knownUserId) {
     knownUserId = user.id;
-  }
-  broadcast('stats', {
+  }broadcast('stats', {
     id: user?.id,
     name: user?.name,
     country: user?.country,
@@ -177,7 +176,9 @@ async function pollStats() {
     points: user?.points, // current round points
     totalPoints: user?.totalPoints,
     taken: user?.taken,
-    uniqueZonesTaken: user?.uniqueZonesTaken
+    uniqueZonesTaken: user?.uniqueZonesTaken,
+    zones: user?.zones,
+    zonesNow: Array.isArray(user?.zones) ? user.zones.length : undefined
   });
 }
 
