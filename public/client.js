@@ -15,7 +15,7 @@
   const items = [];
 
   // Map state
-  let cfg = { showMap: false, showCoords: false, map: { tileUrl: '', attribution: '', zoom: 14 } };
+  let cfg = { showMap: false, showCoords: false, map: { tileUrl: '', attribution: '', zoom: 14 }, tracking: '', trackingLC: '' };
   let map, playerMarker, zoneLayer;
   let lastZonesFetchAt = 0;
 
@@ -91,16 +91,32 @@
     zoneLayer.clearLayers();
     for (const z of zones) {
       if (!Number.isFinite(z.latitude) || !Number.isFinite(z.longitude)) continue;
+
+      // Determine owner name from possible shapes
+      const ownerName = (
+        z.currentOwner?.name ||
+        z.owner?.name ||
+        z.ownerName ||
+        ''
+      );
+      const isMine = ownerName && cfg.trackingLC && ownerName.toLowerCase() === cfg.trackingLC;
+
+      // Colors: mine = green, others = red
+      const stroke = isMine ? '#2e7d32' : '#c62828';
+      const fill = isMine ? '#66bb6a' : '#ef5350';
+
       const m = L.circleMarker([z.latitude, z.longitude], {
         radius: 5,
-        color: '#90caf9',
+        color: stroke,
         weight: 2,
-        fillColor: '#64b5f6',
-        fillOpacity: 0.6
+        fillColor: fill,
+        fillOpacity: 0.7
       });
       const name = z.name || 'Zone';
       const pph = z.pointsPerHour != null ? `PPH: ${z.pointsPerHour}` : '';
-      m.bindTooltip(`${name}${pph ? ` — ${pph}` : ''}`, { direction: 'top' });
+      const owner = ownerName ? `Owner: ${ownerName}` : '';
+      const parts = [name, pph, owner].filter(Boolean);
+      m.bindTooltip(parts.join(' — '), { direction: 'top' });
       zoneLayer.addLayer(m);
     }
   }
@@ -108,14 +124,20 @@
   function centerMap(lat, lng) {
     ensureMap();
     if (!map) return;
+
+    // Create a custom icon for the player marker
+    const playerIcon = L.icon({
+      iconUrl: 'https://turfgame.com/images/menutitlemarker_active.png',
+      iconSize: [26, 26],
+      iconAnchor: [13, 13], // center anchor
+      tooltipAnchor: [0, -14],
+      className: 'player-marker'
+    });
+
     if (!playerMarker) {
-      playerMarker = L.circleMarker([lat, lng], {
-        radius: 6,
-        color: '#81c784',
-        weight: 2,
-        fillColor: '#66bb6a',
-        fillOpacity: 0.9
-      }).addTo(map).bindTooltip('You', { direction: 'top' });
+      playerMarker = L.marker([lat, lng], { icon: playerIcon })
+        .addTo(map)
+        .bindTooltip('You', { direction: 'top' });
     } else {
       playerMarker.setLatLng([lat, lng]);
     }
@@ -168,7 +190,9 @@
         cfg = {
           showMap: !!data.showMap,
           showCoords: !!data.showCoords,
-          map: data.map || cfg.map
+          map: data.map || cfg.map,
+          tracking: data.tracking || '',
+          trackingLC: (data.tracking || '').toLowerCase()
         };
         if (cfg.showMap) ensureMap();
       } catch {}
