@@ -15,6 +15,16 @@ const SHOW_COORDS = (() => {
   return v === '1' || v === 'true' || v === 'yes';
 })();
 
+// Map config
+const SHOW_MAP = (() => {
+  const v = (process.env.SHOW_MAP || 'false').trim().toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes';
+})();
+const MAP_TILE_URL = process.env.MAP_TILE_URL || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const MAP_ATTRIBUTION = process.env.MAP_ATTRIBUTION || '&copy; OpenStreetMap contributors';
+const MAP_ZOOM = Number(process.env.MAP_ZOOM || 14);
+const ZONES_HALFSPAN = Number(process.env.ZONES_HALFSPAN || 0.05);
+
 const FEED_POLL_MS = Number(process.env.FEED_POLL_MS || 5000);
 const STATS_POLL_MS = Number(process.env.STATS_POLL_MS || 15000);
 const LOCATION_POLL_MS = Number(process.env.LOCATION_POLL_MS || 20000);
@@ -221,14 +231,52 @@ app.get('/stream', (req, res) => {
     res.end();
   });
 
-  // Optionally send a hello event
-  sendSSE(res, 'hello', { message: 'connected', tracking: TRACK_USERNAME });
+  // Optionally send a hello event with config
+  sendSSE(res, 'hello', {
+    message: 'connected',
+    tracking: TRACK_USERNAME,
+    showCoords: SHOW_COORDS,
+    showMap: SHOW_MAP,
+    map: {
+      tileUrl: MAP_TILE_URL,
+      attribution: MAP_ATTRIBUTION,
+      zoom: MAP_ZOOM
+    }
+  });
 });
 
 // Start pollers
 createPoller(pollFeeds, FEED_POLL_MS);
 createPoller(pollStats, STATS_POLL_MS);
 createPoller(pollLocation, LOCATION_POLL_MS);
+
+// Zones proxy for a bounding box around a lat/lng
+app.get('/api/zones', async (req, res) => {
+  try {
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+    const half = Number(req.query.half || ZONES_HALFSPAN);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(half) || half <= 0) {
+      return res.status(400).json({ error: 'Invalid parameters' });
+    }
+
+    const northEast = { latitude: lat + half, longitude: lng + half };
+    const southWest = { latitude: lat - half, longitude: lng - half };
+
+    const url = `${API_BASE}/zones`;
+    const body = JSON.stringify([{ northEast, southWest }]);
+    const zones = await fetchJSON(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body
+    });
+
+    res.json({ zones, northEast, southWest });
+  } catch (err) {
+    const code = err?.status || 500;
+    res.status(code).json({ error: err?.message || 'Zones fetch error' });
+  }
+});
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {

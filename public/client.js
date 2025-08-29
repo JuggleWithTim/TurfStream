@@ -2,6 +2,7 @@
   const feedEl = document.getElementById('feed');
   const subtitleEl = document.getElementById('subtitle');
   const presenceEl = document.getElementById('presence');
+  const mapEl = document.getElementById('map');
 
   const rankEl = document.getElementById('rank');
   const placeEl = document.getElementById('place');
@@ -12,6 +13,11 @@
 
   const FEED_MAX = 12;
   const items = [];
+
+  // Map state
+  let cfg = { showMap: false, showCoords: false, map: { tileUrl: '', attribution: '', zoom: 14 } };
+  let map, playerMarker, zoneLayer;
+  let lastZonesFetchAt = 0;
 
   function addFeedItems(newItems) {
     // append newest first
@@ -59,14 +65,80 @@
     uniqueEl.textContent = s?.uniqueZonesTaken ?? '-';
   }
 
+  function ensureMap() {
+    if (!cfg.showMap || map) return;
+    if (!window.L) return;
+    mapEl.style.display = 'block';
+    map = L.map('map', { zoomControl: false, attributionControl: true });
+    L.tileLayer(cfg.map.tileUrl, { attribution: cfg.map.attribution }).addTo(map);
+    zoneLayer = L.layerGroup().addTo(map);
+  }
+
+  async function loadZones(lat, lng) {
+    const now = Date.now();
+    if (now - lastZonesFetchAt < 5000) return;
+    lastZonesFetchAt = now;
+    try {
+      const resp = await fetch(`/api/zones?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`);
+      const json = await resp.json();
+      if (!json || !Array.isArray(json.zones)) return;
+      renderZones(json.zones);
+    } catch {}
+  }
+
+  function renderZones(zones) {
+    if (!zoneLayer) return;
+    zoneLayer.clearLayers();
+    for (const z of zones) {
+      if (!Number.isFinite(z.latitude) || !Number.isFinite(z.longitude)) continue;
+      const m = L.circleMarker([z.latitude, z.longitude], {
+        radius: 5,
+        color: '#90caf9',
+        weight: 2,
+        fillColor: '#64b5f6',
+        fillOpacity: 0.6
+      });
+      const name = z.name || 'Zone';
+      const pph = z.pointsPerHour != null ? `PPH: ${z.pointsPerHour}` : '';
+      m.bindTooltip(`${name}${pph ? ` — ${pph}` : ''}`, { direction: 'top' });
+      zoneLayer.addLayer(m);
+    }
+  }
+
+  function centerMap(lat, lng) {
+    ensureMap();
+    if (!map) return;
+    if (!playerMarker) {
+      playerMarker = L.circleMarker([lat, lng], {
+        radius: 6,
+        color: '#81c784',
+        weight: 2,
+        fillColor: '#66bb6a',
+        fillOpacity: 0.9
+      }).addTo(map).bindTooltip('You', { direction: 'top' });
+    } else {
+      playerMarker.setLatLng([lat, lng]);
+    }
+    if (!map._zoom) {
+      map.setView([lat, lng], cfg.map.zoom || 14);
+    } else {
+      map.panTo([lat, lng], { animate: true });
+    }
+  }
+
   function setPresence(p) {
     if (!p) return;
     if (p.online) {
       let loc = '';
-      if (p.latitude && p.longitude) {
+      if (cfg.showCoords && p.latitude && p.longitude) {
         loc = ` @ ${Number(p.latitude).toFixed(4)}, ${Number(p.longitude).toFixed(4)}`;
       }
       presenceEl.innerHTML = `Status: <span style="color:#81c784">online<\/span>${loc}`;
+
+      if (cfg.showMap && p.latitude && p.longitude) {
+        centerMap(p.latitude, p.longitude);
+        loadZones(p.latitude, p.longitude);
+      }
     } else {
       presenceEl.innerHTML = `Status: <span class="muted">offline<\/span>`;
     }
@@ -91,8 +163,15 @@
   function initSSE() {
     const es = new EventSource('/stream');
     es.addEventListener('hello', (e) => {
-      // Optional handshake
-      // console.log('hello', e.data);
+      try {
+        const data = JSON.parse(e.data);
+        cfg = {
+          showMap: !!data.showMap,
+          showCoords: !!data.showCoords,
+          map: data.map || cfg.map
+        };
+        if (cfg.showMap) ensureMap();
+      } catch {}
     });
     es.addEventListener('feed', (e) => {
       try {

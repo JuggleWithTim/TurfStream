@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <title>Turf Overlay</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <style>
     /* Transparent background for OBS */
     html, body {
@@ -57,6 +58,16 @@
     .tag.medal { background: rgba(255,215,64,0.18); color: #ffd740; }
     .tag.chat { background: rgba(144,202,249,0.18); color: #90caf9; }
     .muted { opacity: 0.7; }
+
+    /* Map container */
+    #map {
+      width: 100%;
+      height: 240px;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-top: 10px;
+      display: none; /* toggled by config */
+    }
   </style>
 </head>
 <body>
@@ -78,8 +89,11 @@
     </div>
 
     <ul class="feed" id="feed"></ul>
+
+    <div id="map"></div>
   </div>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="/client.js"></script>
 </body>
 </html>
