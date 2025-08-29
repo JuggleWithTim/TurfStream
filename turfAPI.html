@@ -1,0 +1,486 @@
+<!DOCTYPE html><html><meta charset="utf-8"><title>TURF API v5</title><xmp theme="readable" id="markdownContent" style="display:none;">
+# __TURF__ API v5
+
+Possible API calls.
+
+* [/feeds](#feeds) <font color="green">Updated!</font>
+* [/regions](#regions) <font color="green">Updated!</font>
+* [/rounds](#rounds)
+* [/statistics](#statistics)
+* [/users](#users) <font color="green">Updated!</font>
+* [/users/location](#usersLocation)
+* [/users/top](#usersTop)
+* [/zones](#zones) <font color="green">Updated!</font>
+* [/zones/all](#zonesAll)
+
+#### Event API <font color="green">NEW!</font>
+
+
+Event specific calls
+
+* [/events](#events)
+* [/events/{id}](#eventsid)
+* [/events/{id}/feed](#eventsidfeed)
+
+
+_All dates are in [ISO8601](http://en.wikipedia.org/wiki/ISO_8601) time format._
+
+* [API limitations](#limitations)
+
+___
+
+
+
+<a name="feeds"></a>
+
+## [v5/feeds](/v5/feeds)
+
+### Request
+
+> GET
+
+OPTIONAL GET PARAMETERS  <font color="green">NEW!</font>
+
+> afterDate=2013-08-27T12:11:14+0000
+
+Note that the date needs to be url encoded, so the above date will in have to become
+
+> afterDate=2013-08-27T12%3A11%3A14%2B0000
+
+If this is present, only posts newer than ``afterDate`` will be returned
+
+### GET Response
+
+Assists for takeover type <font color="green">NEW!</font>
+
+    {..., {"assists": [{"id":412, "name": "SomeAssistTurfer"}, ...]}, ...}
+
+List of live-data objects ordered by time in descending order, the data can be resetted from time to time and should be handled as an alternative to an rss feed.
+
+There is no specification of number of items returned by each request, it could be from 0 to x.
+
+All feed items contains at least the attributes:
+
+    {"time":"???", "type":"???"}
+
+Response:
+
+	[
+
+		{"type":"takeover", "time":"2013-08-27T12:11:14+0000", {"assists": [{"id":412, "name": "turfer_assiser"}]}, {"previousOwner":{"id":654321,"name":"SomeSadPlayer"},"currentOwner":{"id":123467,"name":"SomeHappyPlayer"},"longitude":11.991361,"latitude":57.675559,"zone":{"name":"Plattan", ...}},
+
+		{"type":"medal", "time":"2013-08-27T11:57:56+0000", "medal":6, "user":{"name":"SomeHappyPlayer", ...}},
+
+		{"type":"chat", "time":"2013-08-27T11:14:12+0000", "message":"Chat message text ", "region":{"id":129,"name":"Dalarna"}, "country":"se", "sender":{"name":"playername", ...}},
+
+		{"type":"zone", "time":"2013-08-27T14:00:28+0000", "zone":{"name":"Allebadet", ...}},
+
+		...
+
+	]
+
+
+Current feed types:
+
+- "takeover": Shows latest takeovers within the last 30 minutes.
+- "medal": Shows latest earned medal by user
+- "chat": Shows latest chat messages in game
+- "zone": Shows latest created zones in the game
+
+Its also possible to filter feed types by entering the feed types you want to show
+
+Examples:
+
+[v5/feeds/takeover](/v5/feeds/takeover) returns feed with only takeover types
+
+[v5/feeds/chat+medal](/v5/feeds/chat+medal) returns feed with medals and chat messages only.
+
+___
+
+
+<a name="regions"></a>
+
+## [v5/regions](/v5/regions)
+
+#### <font color="green">New in API v5</font>
+* Moved regionlord to POST endpoint.
+
+### Request
+
+> GET, POST
+
+POST BODY
+
+	[{"id" : 141}, ...]
+
+
+Required Headers for POST
+
+	Content-Type: application/json
+
+### GET Response
+
+Returns all regions with current regionlords
+
+	[{"id":141,"name":"Stockholm","country":"se", ...]
+
+
+### POST Response
+
+BODY
+
+Returns the users in toplist order for the corresponding region or country with the "place" variable localized
+
+	[{"country":"se","name":"Stockholm","areas":[{"name":"Haninge kommun","id":1883}, ... ],"id":141,"regionLord":{"name":"~Sisyfos~","id":64357}}]
+
+
+THROWS (Status: 400 Bad Request)
+
+	//If POST string is invalid
+	{ "errorMessage" : "Invalid JSON string" , "errorCode" : 0xBAD0001 }
+
+___
+
+
+
+
+
+<a name="rounds"></a>
+
+## [v5/rounds](/v5/rounds)
+
+### Request
+
+> GET
+
+### GET Response
+
+Returns monthly turf round start times.
+
+
+	[{ "start":"2013-09-01T10:00:00+0000", "name":"September" }, ... ]
+
+
+___
+
+
+
+<a name="statistics"></a>
+
+## [v5/statistics](/v5/statistics)
+
+Returns current game statistics.
+
+### Request
+
+> GET
+
+### Response
+
+BODY
+
+	{"zonesTakenYesterday":10505,"totalZonesTaken":3061709,"activeUsersThisRound":1451,"zonesTakenToday":7466,"usersOnline":84,"zonesTakenThisRound":78233,"totalUsers":38589}
+
+___
+
+
+
+<a name="users"></a>
+
+## [v5/users](/v5/users) <font color="green">Updated!</font>
+
+#### <font color="green">Updated in API v5</font>
+* blocktime is now in seconds instead of minutes
+
+### Request
+
+> POST
+
+Required Headers
+
+	Content-Type: application/json
+
+BODY
+
+	[{"name" : "fredrick"}, ...]
+
+	OR
+
+	[{"id" : 1803}, ...]
+
+	OR
+
+	[{"email" : "turfer...@gmail.com"}, ...]
+
+	OR
+
+	[{"name" : "fredrick"}, {"email" : "turfer...@gmail.com"}, {"id" : 1803}, ...]
+
+
+### Response
+
+BODY
+
+	[{"region":{"id":141,"name":"Stockholm"},"medals":[5,9,7,36,28,4,20,24,22,25,14,17,16,17,48,17,57,62],"blocktime":30,"zones":[2428,2988,16852,7152,355,1106,16900],"uniqueZonesTaken":205,"id":1803,"pointsPerHour":31,"rank":42,"totalPoints":1976318,"name":"Fredrick","taken":7402,"points":75964,"place":15,"country":"se"}, ...]
+
+
+THROWS (Status: 400 Bad Request)
+
+	//If POST string is invalid
+	{ "errorMessage" : "Invalid JSON string" , "errorCode" : 0xBAD0001 }
+
+
+___
+
+
+
+<a name="usersLocation"></a>
+
+## [v5/users/location](/v5/users/location)
+
+### Request
+
+> GET
+
+### GET Response
+
+Returns current players that has a location on the game map
+
+
+	[{ "id":14242, "name":"turfername" , "longitude":16.552683 , "latitude":59.604117 }, ... ]
+
+___
+
+
+<a name="usersTop"></a>
+
+## [v5/users/top](/v5/users/top)
+
+### Request
+
+> GET, POST
+
+
+Required Headers for POST
+
+	Content-Type: application/json
+
+POST BODY
+
+	{"from": 1, "to": 10}
+
+	OR
+
+	{"country": "se", "from": 1, "to": 10}
+
+	OR
+
+	{"region": "kalmar", "from": 1, "to": 10}
+
+
+### GET Response
+
+Returns top 50 users in order, see __/users__ for all the user parameters available
+
+	[{"name":"leader", "place":1, ...}, {"name":"runnerup", "place":2, ...}, ...]
+
+### POST Response
+
+BODY
+
+Returns the users in toplist order for the corresponding region or country with the "place" variable localized
+
+	[{"name":"leader", "place":1, ...}, {"name":"runnerup", "place":2, ...}, ...]
+
+
+THROWS (Status: 400 Bad Request)
+
+	//If POST string is invalid
+	{ "errorMessage" : "Invalid JSON string" , "errorCode" : 0xBAD0001 }
+
+
+___
+
+
+<a name="zones"></a>
+
+## [v5/zones](/v5/zones)
+
+Query the API for any zone in the game.
+
+#### <font color="green">New in API v5</font>
+* ``"region"`` property now have ``"area"``
+* Added ``"type"`` for special zones
+
+### Request
+
+> POST
+
+Required Headers
+
+	Content-Type: application/json
+
+BODY
+
+	[{"name" : "plattan"}, ...]
+
+	OR
+
+	[{"id" : 138}, ...]
+
+	OR
+
+	[{"id" : 138}, {"name":"plattan"} ...]
+
+	OR
+
+	// Return all zones within an area
+	[{
+		"northEast" : {"latitude":59.339881, "longitude":18.086243},
+		"southWest" : {"latitude":59.313259, "longitude":18.048477}
+	}]
+
+### Response
+
+BODY
+
+	[{"type": {"id": 9, "name": "Holy"},"region":{"area":{"name":"Stockholms kommun","id":1828},"country":"se","name":"Stockholm","id":141},"id":138,"currentOwner":{"id":14022,"name":"Pelle494"},"totalTakeovers":6278,"takeoverPoints":65,"dateLastTaken":"2013-06-08T12:59:19+0000","name":"Plattan","pointsPerHour":9,"dateCreated":"2010-09-04T16:41:37+0000","longitude":18.064098,"latitude":59.33225}, ...]
+
+
+THROWS (Status: 400 Bad Request)
+
+	//If POST string is invalid
+	{ "errorMessage" : "Invalid JSON string", "errorCode" : 0xBAD0001 }
+
+	//If the area is too big
+	if ( northEast["latitude"] - southWest["latitude"] ) * ( northEast["longitude"] - southWest["longitude"] ) > 0.05
+	{ "errorMessage" : "The area is too big", "errorCode" : 0xBAD0002 }
+
+
+	//If the area-coordinates arent creating a valid area
+	{ "errorMessage" : "Invalid coordinates", "errorCode" : 0xBAD0003 }
+
+
+___
+
+
+<a name="zonesAll"></a>
+
+## [v5/zones/all](/v5/zones/all)
+
+Returns all the zones in the game. The list updates at least once an hour.
+
+### Request
+
+> GET
+
+### Response
+
+BODY
+
+	[{"dateCreated":"2016-05-17T10:00:00+0000","latitude":58.345189,"name":"LitlBridge","id":65492,"totalTakeovers":0,"region":{"area":{"name":"Sokndal","id":3118},"country":"no","name":"Vestlandet","id":181},"type":{"name":"Bridge","id":8}, ...]
+
+THROWS (Status: 429 Too many requests)
+
+	//If queries twice within 30 minutes
+	{"errorMessage":"Only one request per 30 minutes allowed","errorCode":0xBAD0004}
+
+
+
+___
+
+
+## Event API <font color="green">NEW!</font>
+
+___
+
+<a name="events"></a>
+
+## [v5/events](/v5/events)
+
+All passed events
+
+### Request
+
+> GET
+
+### Response
+
+All public events ordered by date, only returns finished events.
+
+BODY
+
+    [{id: 246,stop: "2015-04-18T14:00:00+0000",start: "2015-04-18T12:00:00+0000",name: "EventName",longitude: 13.501434,latitude: 59.384429,type: "public/private"},polygon: [{longitude: 19.927409,latitude: 60.10483},...],...]
+___
+
+
+
+<a name="eventsid"></a>
+
+## [v5/events/{id}](/v5/events/{id})
+
+Specific finished event
+
+### Request
+
+> GET
+
+### Response
+
+Event by ID
+
+BODY
+
+    {id: 246,polygon: [{longitude: 19.927409,latitude: 60.10483},...],stop: "2015-04-18T14:00:00+0000",start: "2015-04-18T12:00:00+0000",name: "EventName",longitude: 13.501434,latitude: 59.384429,type:"public/private",zones: [{polygon: [{longitude: 13.487091,latitude: 59.401414},...],id: 48798,takeoverPoints: 10,name: "ZoneName",pointsPerHour: 60,longitude: 13.486841,latitude: 59.401362},...],participants: [{id: 36518,name: "participantName",points: 1972,place: 1},...]}
+
+___
+
+
+<a name="eventsidfeed"></a>
+
+## [v5/events/{id}/feed](/v5/events/{id}/feed)
+
+All takeovers for a specific event
+
+### Request
+
+> GET
+
+### Response
+
+All takovers in feed format for the current live event
+
+BODY
+
+    [{currentOwner: {id: 0,name: "UserName"},time: "2015-04-30T06:44:45+0000",longitude: 13.907372,latitude: 56.092683,type: "takeover",zone: {id: 50890,takeoverPoints: 10,name: "ZoneName",pointsPerHour: 60,longitude: 13.907372,latitude: 56.092683}},...]
+
+___
+
+
+## Optional, but recommended header value for all API calls
+
+	Accept-Encoding: gzip
+
+
+___
+
+
+<a name="limitations"></a>
+
+## API limitations
+
+> Only one request per second per resource is currently allowed. This might change in the future depending on API usage.
+
+THROWS (Status: 429 Too many requests)
+
+	{"errorMessage":"Only one request per second allowed","errorCode":0xBAD0004}
+
+___
+
+
+
+# API versions
+
+Old API versions are still available but its NOT recommended to use them, they might not be maintained in the future.
+
+For a sneak peek of the latest API version, goto [api.turfgame.com/unstable](/unstable)</xmp><script src="https://cdn.rawgit.com/arturadib/strapdown/gh-pages/v/0.2/strapdown.js"></script></html>
