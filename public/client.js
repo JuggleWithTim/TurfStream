@@ -125,9 +125,8 @@
 
     // Create a custom icon for the player marker
     const playerIcon = L.icon({
-      iconUrl: 'https://turfgame.com/images/menutitlemarker_active.png',
-      iconSize: [22, 36],
-      iconAnchor: [13, 13], // center anchor
+      iconUrl: 'https://turfgame.com/images/menutitlemarker_active.png',iconSize: [22, 36],
+      iconAnchor: [11, 36], // bottom-center anchor (feet)
       tooltipAnchor: [0, -14],
       className: 'player-marker'
     });
