@@ -32,6 +32,53 @@ const LOCATION_POLL_MS = Number(process.env.LOCATION_POLL_MS || 20000);
 // Simple server-sent events registry
 const clients = new Set();
 
+// API Request Queue to respect rate limits
+class APIRequestQueue {
+  constructor() {
+    this.queue = [];
+    this.processing = false;
+    this.lastRequestTime = 0;
+    this.minDelay = 1000; // 1 second minimum between requests
+  }
+
+  async add(requestFn) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ requestFn, resolve, reject });
+      this.process();
+    });
+  }
+
+  async process() {
+    if (this.processing || this.queue.length === 0) return;
+
+    this.processing = true;
+
+    while (this.queue.length > 0) {
+      const now = Date.now();
+      const timeSinceLastRequest = now - this.lastRequestTime;
+
+      if (timeSinceLastRequest < this.minDelay) {
+        const waitTime = this.minDelay - timeSinceLastRequest;
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+
+      const { requestFn, resolve, reject } = this.queue.shift();
+
+      try {
+        this.lastRequestTime = Date.now();
+        const result = await requestFn();
+        resolve(result);
+      } catch (error) {
+        reject(error);
+      }
+    }
+
+    this.processing = false;
+  }
+}
+
+const apiQueue = new APIRequestQueue();
+
 // State
 let lastAfterDate = null; // Use API-returned time string
 let knownUserId = null;
@@ -55,21 +102,23 @@ function encodeAfterDateParam(timeStr) {
 }
 
 async function fetchJSON(url, options = {}) {
-  const res = await fetch(url, {
-    ...options,
-    // Let Node handle gzip automatically
-    headers: {
-      Accept: 'application/json',
-      ...(options.headers || {})
+  return apiQueue.add(async () => {
+    const res = await fetch(url, {
+      ...options,
+      // Let Node handle gzip automatically
+      headers: {
+        Accept: 'application/json',
+        ...(options.headers || {})
+      }
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      const err = new Error(`HTTP ${res.status} for ${url}: ${txt}`);
+      err.status = res.status;
+      throw err;
     }
+    return res.json();
   });
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '');
-    const err = new Error(`HTTP ${res.status} for ${url}: ${txt}`);
-    err.status = res.status;
-    throw err;
-  }
-  return res.json();
 }
 
 // Pollers with naive backoff on 429 or network errors
