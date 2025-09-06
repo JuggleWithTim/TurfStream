@@ -29,6 +29,7 @@
     }
     .subtitle {
       opacity: 0.8; font-size: 14px;
+      visibility: hidden;
     }
     .stats {
       display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px;
@@ -84,7 +85,8 @@
       <div>Leaderboard Place: <span class="muted" id="place">-</span></div>
       <div>Points Per Hour: <span class="muted" id="pph">-</span></div>
       <div>All Time Points: <span class="muted" id="points">-</span></div>
-      <div>Zones held right now: <span class="muted" id="zonesNow">-</span></div>
+      <div>Points This Round: <span class="muted" id="pointsThisRound">-</span></div>
+      <div>Zones right now: <span class="muted" id="zonesNow">-</span></div>
       <div>Zones Taken (All Time): <span class="muted" id="taken">-</span></div>
       <div>Unique Zones Taken: <span class="muted" id="unique">-</span></div>
     </div>

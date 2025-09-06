@@ -2,11 +2,13 @@
   const feedEl = document.getElementById('feed');
   const subtitleEl = document.getElementById('subtitle');
   const presenceEl = document.getElementById('presence');
-  const mapEl = document.getElementById('map');const rankEl = document.getElementById('rank');
+  const mapEl = document.getElementById('map');
+  const rankEl = document.getElementById('rank');
   const placeEl = document.getElementById('place');
   const pphEl = document.getElementById('pph');
   const zonesNowEl = document.getElementById('zonesNow');
   const pointsEl = document.getElementById('points');
+  const pointsThisRoundEl = document.getElementById('pointsThisRound');
   const takenEl = document.getElementById('taken');
   const uniqueEl = document.getElementById('unique');
 
@@ -58,7 +60,8 @@
     placeEl.textContent = s?.place ?? '-';
     pphEl.textContent = s?.pointsPerHour ?? '-';
     zonesNowEl.textContent = (Array.isArray(s?.zones) ? s.zones.length : (Number.isFinite(s?.zonesNow) ? s.zonesNow : '-'));
-    pointsEl.textContent = s?.points ?? '-';
+    pointsEl.textContent = s?.totalPoints ?? '-';
+    pointsThisRoundEl.textContent = s?.points ?? '-';
     takenEl.textContent = s?.taken ?? '-';
     uniqueEl.textContent = s?.uniqueZonesTaken ?? '-';
   }
@@ -104,7 +107,7 @@
       const fill = isMine ? '#66bb6a' : '#ef5350';
 
       const m = L.circleMarker([z.latitude, z.longitude], {
-        radius: 5,
+        radius: 10,
         color: stroke,
         weight: 2,
         fillColor: fill,
