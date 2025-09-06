@@ -14,7 +14,7 @@
     .overlay {
       box-sizing: border-box;
       padding: 12px 16px;
-      background: rgba(10, 25, 41, 0.55); /* semi-transparent */
+      background: rgba(10, 25, 41, 0.70); /* semi-transparent */
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 8px;
       min-width: 360px;
@@ -28,30 +28,32 @@
       font-weight: 700; font-size: 18px;
     }
     .subtitle {
-      opacity: 0.8; font-size: 12px;
+      opacity: 0.8; font-size: 14px;
     }
     .stats {
       display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px;
-      font-size: 14px;
+      font-size: 19px;
       margin-bottom: 10px;
+      font-weight: bold;
     }
     .stats div { opacity: 0.95; }
 
     .online {
-      margin-bottom: 10px; font-size: 12px;
+      margin-bottom: 10px; font-size: 14px;
       opacity: 0.9;
     }
 
     .feed {
-      list-style: none; margin: 0; padding: 0; font-size: 14px;
+      list-style: none; margin: 0; padding: 0; font-size: 18px;
       max-height: 260px; overflow: hidden;
+      font-weight: bold;
     }
     .feed li {
       margin: 6px 0; padding-left: 8px; border-left: 2px solid rgba(255,255,255,0.15);
       line-height: 1.3;
     }
     .tag {
-      display: inline-block; padding: 1px 6px; font-size: 11px; border-radius: 999px;
+      display: inline-block; padding: 1px 6px; font-size: 19px; border-radius: 999px;
       background: rgba(77, 208, 225, 0.18); color: #4dd0e1; margin-right: 6px;
     }
     .tag.takeover { background: rgba(129,199,132,0.18); color: #81c784; }
@@ -73,7 +75,7 @@
 <body>
   <div class="overlay">
     <div class="header">
-      <div class="title">Turf Live</div>
+      <div class="title"><img src="https://turfgame.com/images/turflogo.png" alt="Turf" /></div>
       <div class="subtitle" id="subtitle"></div>
     </div>
 
@@ -81,10 +83,10 @@
       <div>Rank/Level: <span class="muted" id="rank">-</span></div>
       <div>Leaderboard Place: <span class="muted" id="place">-</span></div>
       <div>Points Per Hour: <span class="muted" id="pph">-</span></div>
-      <div>Zones Now: <span class="muted" id="zonesNow">-</span></div>
       <div>All Time Points: <span class="muted" id="points">-</span></div>
+      <div>Zones held right now: <span class="muted" id="zonesNow">-</span></div>
       <div>Zones Taken (All Time): <span class="muted" id="taken">-</span></div>
-      <div>Unique Zones (All Time): <span class="muted" id="unique">-</span></div>
+      <div>Unique Zones Taken: <span class="muted" id="unique">-</span></div>
     </div>
 
     <ul class="feed" id="feed"></ul>
