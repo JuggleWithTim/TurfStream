@@ -12,7 +12,7 @@
   const takenEl = document.getElementById('taken');
   const uniqueEl = document.getElementById('unique');
 
-  const FEED_MAX = 12;
+  const FEED_MAX = 4;
   const items = [];
 
   // Map state
@@ -30,9 +30,12 @@
         const curr = it.currentOwner?.name || '';
         const prev = it.previousOwner?.name || '';
         const assisted = Array.isArray(it.assists) ? it.assists.map(a => a?.name).filter(Boolean) : [];
+        const isLoss = prev && prev === cfg.tracking;
         const line = assisted.length > 0
           ? `${curr} assisted by ${assisted.join(', ')} took ${z}`
-          : `${curr} took ${z}${prev ? ` from ${prev}` : ''}`;
+          : isLoss
+            ? `Lost ${z} to ${curr}`
+            : `${curr} took ${z}${prev ? ` from ${prev}` : ''}`;
         li.innerHTML = `<span class="tag takeover">takeover<\/span>${line} <span class="muted">(${time})<\/span>`;
       } else if (it.type === 'medal') {
         const who = it.user?.name || '';

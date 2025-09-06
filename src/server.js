@@ -130,7 +130,7 @@ function filterFeedForUser(items) {
 
 // Poll /v5/feeds for new items
 async function pollFeeds() {
-  const types = 'takeover+medal+chat';
+  const types = 'takeover+medal';
   const qs = lastAfterDate ? `?afterDate=${encodeAfterDateParam(lastAfterDate)}` : '';
   const url = `${API_BASE}/feeds/${types}${qs}`;
   const feed = await fetchJSON(url);
