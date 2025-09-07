@@ -122,13 +122,20 @@ async function fetchJSON(url, options = {}) {
 }
 
 // Pollers with naive backoff on 429 or network errors
+// Only polls when clients are connected to avoid unnecessary API usage
 function createPoller(fn, intervalMs) {
   let nextDelay = intervalMs;
   let timer = null;
   const run = async () => {
     try {
-      await fn();
-      nextDelay = intervalMs; // reset backoff on success
+      // Only poll if there are active clients
+      if (clients.size > 0) {
+        await fn();
+        nextDelay = intervalMs; // reset backoff on success
+      } else {
+        // No clients connected, keep the same interval for next check
+        nextDelay = intervalMs;
+      }
     } catch (err) {
       // Simple backoff: double up to 60s on errors or 429
       if (err && (err.status === 429)) {
