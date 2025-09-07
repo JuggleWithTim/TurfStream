@@ -237,25 +237,35 @@ async function pollLocation() {
   const url = `${API_BASE}/users/location`;
   const data = await fetchJSON(url);
   if (!Array.isArray(data)) return;
-  const me = data.find(u => u?.id === knownUserId);
-  if (me) {
+
+  // Process all users
+  const users = data.map(u => {
+    const isTracked = u?.id === knownUserId;
     const payload = {
+      id: u.id,
+      name: u.name,
       online: true,
-      id: me.id,
-      name: me.name
+      isTracked
     };
     if (SHOW_COORDS) {
-      payload.latitude = me.latitude;
-      payload.longitude = me.longitude;
+      payload.latitude = u.latitude;
+      payload.longitude = u.longitude;
     }
-    broadcast('location', payload);
-  } else {
-    broadcast('location', {
-      online: false,
+    return payload;
+  });
+
+  // If tracked user is not in the list, add them as offline
+  const hasTracked = users.some(u => u.isTracked);
+  if (!hasTracked) {
+    users.push({
       id: knownUserId,
-      name: TRACK_USERNAME
+      name: TRACK_USERNAME,
+      online: false,
+      isTracked: true
     });
   }
+
+  broadcast('location', users);
 }
 
 // Web server

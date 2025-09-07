@@ -17,8 +17,9 @@
 
   // Map state
   let cfg = { showMap: false, showCoords: false, map: { tileUrl: '', attribution: '', zoom: 14 }, tracking: '', trackingLC: '' };
-  let map, playerMarker, zoneLayer;
+  let map, playerMarker, zoneLayer, otherPlayersLayer;
   let lastZonesFetchAt = 0;
+  let otherPlayerMarkers = new Map(); // id -> marker
 
   function addFeedItems(newItems) {
     // append newest first
@@ -76,6 +77,7 @@
     map = L.map('map', { zoomControl: false, attributionControl: true });
     L.tileLayer(cfg.map.tileUrl, { attribution: cfg.map.attribution }).addTo(map);
     zoneLayer = L.layerGroup().addTo(map);
+    otherPlayersLayer = L.layerGroup().addTo(map);
   }
 
   async function loadZones(lat, lng) {
@@ -96,18 +98,28 @@
     for (const z of zones) {
       if (!Number.isFinite(z.latitude) || !Number.isFinite(z.longitude)) continue;
 
-      // Determine owner name from possible shapes
-      const ownerName = (
-        z.currentOwner?.name ||
-        z.owner?.name ||
-        z.ownerName ||
-        ''
-      );
-      const isMine = ownerName && cfg.trackingLC && ownerName.toLowerCase() === cfg.trackingLC;
+    // Determine owner name from possible shapes
+    const ownerName = (
+      z.currentOwner?.name ||
+      z.owner?.name ||
+      z.ownerName ||
+      ''
+    );
+    const isMine = ownerName && cfg.trackingLC && ownerName.toLowerCase() === cfg.trackingLC;
+    const isUnowned = !ownerName;
 
-      // Colors: mine = green, others = red
-      const stroke = isMine ? '#2e7d32' : '#c62828';
-      const fill = isMine ? '#66bb6a' : '#ef5350';
+    // Colors: mine = green, others = red, unowned = yellow
+    let stroke, fill;
+    if (isUnowned) {
+      stroke = '#f9a825';
+      fill = '#fdd835';
+    } else if (isMine) {
+      stroke = '#2e7d32';
+      fill = '#66bb6a';
+    } else {
+      stroke = '#c62828';
+      fill = '#ef5350';
+    }
 
       const m = L.circleMarker([z.latitude, z.longitude], {
         radius: 10,
@@ -131,7 +143,8 @@
 
     // Create a custom icon for the player marker
     const playerIcon = L.icon({
-      iconUrl: 'https://turfgame.com/images/menutitlemarker_active.png',iconSize: [22, 36],
+      iconUrl: 'https://turfgame.com/images/map_user_green.png',
+      iconSize: [20, 35],
       iconAnchor: [11, 36], // bottom-center anchor (feet)
       tooltipAnchor: [0, -14],
       className: 'player-marker'
@@ -151,22 +164,87 @@
     }
   }
 
-  function setPresence(p) {
-    if (!p) return;
-    if (p.online) {
-      let loc = '';
-      if (cfg.showCoords && p.latitude && p.longitude) {
-        loc = ` @ ${Number(p.latitude).toFixed(4)}, ${Number(p.longitude).toFixed(4)}`;
-      }
-      presenceEl.innerHTML = `Status: <span style="color:#81c784">online<\/span>${loc}`;
+  function updatePlayerMarkers(users) {
+    if (!otherPlayersLayer) return;
 
-      if (cfg.showMap && p.latitude && p.longitude) {
-        centerMap(p.latitude, p.longitude);
-        loadZones(p.latitude, p.longitude);
+    // Track which users are still online
+    const currentUserIds = new Set();
+
+    for (const user of users) {
+      currentUserIds.add(user.id);
+
+      if (user.isTracked) {
+        // Handle tracked user
+        if (user.online && user.latitude && user.longitude) {
+          centerMap(user.latitude, user.longitude);
+          loadZones(user.latitude, user.longitude);
+        }
+      } else {
+        // Handle other players
+        if (user.online && user.latitude && user.longitude) {
+          updateOtherPlayerMarker(user);
+        } else {
+          removeOtherPlayerMarker(user.id);
+        }
       }
-    } else {
-      presenceEl.innerHTML = `Status: <span class="muted">offline<\/span>`;
     }
+
+    // Remove markers for users who are no longer online
+    for (const [userId, marker] of otherPlayerMarkers) {
+      if (!currentUserIds.has(userId)) {
+        otherPlayersLayer.removeLayer(marker);
+        otherPlayerMarkers.delete(userId);
+      }
+    }
+  }
+
+  function updateOtherPlayerMarker(user) {
+    const icon = L.icon({
+      iconUrl: 'https://turfgame.com/images/map_user_red.png',
+      iconSize: [20, 35],
+      iconAnchor: [11, 36],
+      tooltipAnchor: [0, -14],
+      className: 'other-player-marker'
+    });
+
+    let marker = otherPlayerMarkers.get(user.id);
+    if (!marker) {
+      marker = L.marker([user.latitude, user.longitude], { icon })
+        .addTo(otherPlayersLayer)
+        .bindTooltip(user.name, { direction: 'top' });
+      otherPlayerMarkers.set(user.id, marker);
+    } else {
+      marker.setLatLng([user.latitude, user.longitude]);
+    }
+  }
+
+  function removeOtherPlayerMarker(userId) {
+    const marker = otherPlayerMarkers.get(userId);
+    if (marker) {
+      otherPlayersLayer.removeLayer(marker);
+      otherPlayerMarkers.delete(userId);
+    }
+  }
+
+  function setPresence(users) {
+    if (!Array.isArray(users)) return;
+
+    // Find tracked user for status display
+    const trackedUser = users.find(u => u.isTracked);
+    if (trackedUser) {
+      if (trackedUser.online) {
+        let loc = '';
+        if (cfg.showCoords && trackedUser.latitude && trackedUser.longitude) {
+          loc = ` @ ${Number(trackedUser.latitude).toFixed(4)}, ${Number(trackedUser.longitude).toFixed(4)}`;
+        }
+        presenceEl.innerHTML = `Status: <span style="color:#81c784">online<\/span>${loc}`;
+      } else {
+        presenceEl.innerHTML = `Status: <span class="muted">offline<\/span>`;
+      }
+    }
+
+    // Update all player markers
+    updatePlayerMarkers(users);
   }
 
   function formatTime(turfTime) {
