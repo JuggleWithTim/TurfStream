@@ -96,18 +96,28 @@
     for (const z of zones) {
       if (!Number.isFinite(z.latitude) || !Number.isFinite(z.longitude)) continue;
 
-      // Determine owner name from possible shapes
-      const ownerName = (
-        z.currentOwner?.name ||
-        z.owner?.name ||
-        z.ownerName ||
-        ''
-      );
-      const isMine = ownerName && cfg.trackingLC && ownerName.toLowerCase() === cfg.trackingLC;
+    // Determine owner name from possible shapes
+    const ownerName = (
+      z.currentOwner?.name ||
+      z.owner?.name ||
+      z.ownerName ||
+      ''
+    );
+    const isMine = ownerName && cfg.trackingLC && ownerName.toLowerCase() === cfg.trackingLC;
+    const isUnowned = !ownerName;
 
-      // Colors: mine = green, others = red
-      const stroke = isMine ? '#2e7d32' : '#c62828';
-      const fill = isMine ? '#66bb6a' : '#ef5350';
+    // Colors: mine = green, others = red, unowned = yellow
+    let stroke, fill;
+    if (isUnowned) {
+      stroke = '#f9a825';
+      fill = '#fdd835';
+    } else if (isMine) {
+      stroke = '#2e7d32';
+      fill = '#66bb6a';
+    } else {
+      stroke = '#c62828';
+      fill = '#ef5350';
+    }
 
       const m = L.circleMarker([z.latitude, z.longitude], {
         radius: 10,
